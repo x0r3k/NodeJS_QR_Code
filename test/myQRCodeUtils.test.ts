@@ -73,7 +73,7 @@ describe('"MyQRCodeUtils" Class methods Test', () => {
   });
 
   describe('GetVersionForDataSize method Test', () => {
-    it('Should get bit size by level and version', () => {
+    it('Should return version for total datasize', () => {
       expect(MyQRCodeUtils.getVersionForDataSize(1000, 'L')).toEqual({ L: 6 });
       expect(MyQRCodeUtils.getVersionForDataSize(1000, 'M')).toEqual({ M: 8 });
       expect(MyQRCodeUtils.getVersionForDataSize(1000, 'Q')).toEqual({ Q: 9 });
@@ -84,6 +84,14 @@ describe('"MyQRCodeUtils" Class methods Test', () => {
       expect(MyQRCodeUtils.getVersionForDataSize(5000)).toEqual({
         L: 17, M: 19, Q: 24, H: 27,
       });
+    });
+    it('Should return version for only user datasize and datatype \'number\'', () => {
+      expect(MyQRCodeUtils.getVersionForDataSize(1087, 'L', 'number')).toEqual({ L: 7 });
+      expect(MyQRCodeUtils.getVersionForDataSize(1078, 'L', 'number')).toEqual({ L: 7 });
+      expect(MyQRCodeUtils.getVersionForDataSize(1074, 'L', 'number')).toEqual({ L: 6 });
+      expect(MyQRCodeUtils.getVersionForDataSize(368, 'H', 'alphanum')).toEqual({ H: 6 });
+      expect(MyQRCodeUtils.getVersionForDataSize(1078, 'H', 'alphanum')).toEqual({ H: 11 });
+      expect(MyQRCodeUtils.getVersionForDataSize(3248, 'H', 'alphanum')).toEqual({ H: 22 });
     });
   });
 
@@ -108,5 +116,12 @@ describe('"MyQRCodeUtils" Class methods Test', () => {
       ({ version, dataType, expected }) => {
         expect(MyQRCodeUtils.getServiceUserDataSize(version, dataType)).toBe(expected);
       });
+  });
+
+  describe('ConvertVersion method Test', () => {
+    it('Should convert format of version', () => {
+      expect(MyQRCodeUtils.convertVersion(10, 'i')).toBe(11);
+      expect(MyQRCodeUtils.convertVersion(10, 'v')).toBe(9);
+    });
   });
 });

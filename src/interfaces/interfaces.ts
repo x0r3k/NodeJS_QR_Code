@@ -28,3 +28,8 @@ export type TVersionGroups = {
 }
 
 export type TUserDataTypes = number | string;
+
+export type TQRCodeOptions = {
+  version?: number,
+  correctionLevel?: TCorrectionLevel
+}

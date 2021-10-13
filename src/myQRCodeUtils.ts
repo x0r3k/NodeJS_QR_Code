@@ -8,6 +8,7 @@ import {
   TServiceUserDataSize,
   TVersionGroupIds,
   TVersionGroups,
+  TUserDataTypes,
 } from './interfaces/interfaces';
 
 // Common utils that relateto QR Code generation flow only
@@ -146,6 +147,29 @@ export default class MyQRCodeUtils {
   }
 
   /**
+   * Simple method to transform QR Code version from 'index' ('i') format
+   * to 'value' ('v') format and vice versa.
+   *
+   * Format param defines format of first parameter - version. If format === 'i'
+   * then version passed as array index and will be transformed to QR Code version value.
+   * If format === 'v' then version passed as QR Code version value and will be transformed
+   * to index of array
+   * @param version Value of version
+   * @param format Initial format of 'version' param
+   * @returns version in new format
+   */
+  public static convertVersion(version: number, format: string = 'i'): number {
+    switch (format) {
+      case 'i':
+        return version + 1;
+      case 'v':
+        return version - 1;
+      default:
+        return -1;
+    }
+  }
+
+  /**
    * Returns the value of minimal required QR Code version to store the data.
    *
    * If correcton level param passed then returns version only for passed correction level,
@@ -154,9 +178,9 @@ export default class MyQRCodeUtils {
    * If a varsion that fits the size of data not found then it returns -1.
    * @param dataSize Size of data in bits
    * @param correctionLevel Correction level. Values: ['L', 'M', 'Q', 'H'];
+   * @param dataType Type of user data
    * @returns
    */
-  // FIXME: fix this function to accept and recalc datasize if withServiceData false
   public static getVersionForDataSize(dataSize: number, correctionLevel?: TCorrectionLevel, dataType?: TDataTypeValues): TMaxDataValue {
     const result: TMaxDataValue = {};
     if (correctionLevel) {
@@ -169,20 +193,20 @@ export default class MyQRCodeUtils {
 
     const resultKeys = Object.keys(result) as Array<keyof TMaxDataValue>;
     resultKeys.forEach((level) => {
-      // if version not found then nothing todo
+      // if version not found then skip
       if (typeof result[level] === 'undefined' || result[level] === -1) return;
       // if datasize includes only user data then get service data size
-      // and check if chosen version can store new datasize (user+serice data)
       if (typeof dataType !== 'undefined') {
-        const serviceData = this.getServiceUserDataSize(result[level]!, dataType); // get service data for chosen version
-        dataSize = dataSize + serviceData + 4; // recalc datasize
-        if (!this.canDataBeStored(dataSize, level, result[level])) { // if version cannot store this size of data
-          // then increment it if version+1 exists or set -1
-          result[level] = (result[level]! + 1) > this.versionRange.max ? -1 : result[level]! + 1;
-        }
+        // get service data for chosen version
+        const serviceData = this.getServiceUserDataSize(this.convertVersion(result[level]!, 'i'), dataType);
+        dataSize = dataSize + serviceData + 4; // recalc total datasize for storing
+        // if version cannot store this size of data then increment version
+        if (!this.canDataBeStored(dataSize, level, this.convertVersion(result[level]!, 'i'))) result[level]! += 1;
       }
       // transform version array index to normal value of version
-      result[level]! += 1;
+      result[level] = this.convertVersion(result[level]!, 'i');
+      // if result version is bigger than max version value - reset to -1
+      if (result[level]! > this.versionRange.max) result[level] = -1;
     });
     return result;
   }
@@ -251,5 +275,27 @@ export default class MyQRCodeUtils {
     const result = this.serviceUserDataSize[dataType][versionGroup];
     if (!result) throw new Error('Service data for user data size not found');
     return result;
+  }
+
+  /**
+   * Method essence is to calculate user data size in bytes
+   * (DO NOT CONFUSE IT WITH BINARY USER DATA SIZE)
+   *
+   * If dataType 'number' or 'alphanum' then userDataSize would be amount of characters in data
+   * If dataType 'bytes' then it would be number of passed bytes
+   * @param dataType Type of data for QR Code
+   * @param userData User data that should be stored in QR Code
+   * @returns Size of user data in bytes
+   */
+  public static getUserDataSize(dataType: TDataTypeValues, userData: TUserDataTypes) {
+    switch (dataType) {
+      case 'number':
+        return userData.toString(10).length;
+      case 'alphanum':
+        return userData.toString().length;
+      case 'bytes': // will be implemented later
+      default:
+        return -1;
+    }
   }
 }

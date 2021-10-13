@@ -2,7 +2,7 @@ import MyQRCodeUtils from './myQRCodeUtils';
 import MyUtils from './myUtils';
 
 import {
-  TDataTypeValues, TCorrectionLevel, TUserDataTypes,
+  TDataTypeValues, TCorrectionLevel, TUserDataTypes, TQRCodeOptions,
 } from './interfaces/interfaces';
 
 export default class MyQRCode {
@@ -21,9 +21,9 @@ export default class MyQRCode {
    * Triplet has 1 character - 4 characters
    *
    * @param data data in number format
-   * @returns If array of triplets is empty - return null. Else return array of triplets
+   * @returns If array of triplets is empty - return null. Else return data as binary string
    */
-  private static codeNumber(data: number): string | null {
+  public static codeNumber(data: number): string | null {
     const paramChunks = data.toString().match(/.{1,3}/g);
     if (paramChunks) {
       return paramChunks.map((item) => {
@@ -48,7 +48,22 @@ export default class MyQRCode {
     return null;
   }
 
-  private static codeString(data: string): string | null {
+  /**
+   * Converts alphanum data to binary view.
+   *
+   * Splits data to array of duplets
+   * (duplet - string with max two symbols, could be less if it is last character of data).
+   * Each duplet converted to Binary (Binary - integer in binary code represented as string).
+   * Length of binary string determined by triplet length:
+   *
+   * Duplet has 2 characters - 11 characters
+   *
+   * Duplet has 1 character - 6 characters
+   *
+   * @param data data in alphanum format
+   * @returns If array of duplets is empty - return null. Else return data as binary string
+   */
+  public static codeString(data: string): string | null {
     if (typeof data !== 'string') throw new Error('Data should be string');
 
     if (!data.length) throw new Error('Data is empty'); // maybe it can be empty??
@@ -77,23 +92,23 @@ export default class MyQRCode {
     return null;
   }
 
-  // FIXME: function too difficult, many duplicated lines of code
   // FIXME: write more tests for this function
   /**
    * Generate bits of service data: data type bits and user data size bits
    * @param dataType Type of data for QR Code
-   * @param userData User data that should be stored in QR Code
+   * @param userDataSize Size of user data in bytes. For 'number' and 'alphanum' its amount of characters,
+   * for 'bytes' its number of bytes
+   * @param userBinaryDataSize Size (length) of user data converted to binary string
    * @param correctionLevel Correction level. Values: ['L', 'M', 'Q', 'H'];
    * @returns object with data type bits and user data size bits
    */
-  public static generateServiceFields(dataType: TDataTypeValues, userData: TUserDataTypes, correctionLevel: TCorrectionLevel) {
+  public static generateServiceFields(dataType: TDataTypeValues, userDataSize: number, userBinaryDataSize: number, correctionLevel: TCorrectionLevel) {
     const result = {
       dataTypeBinary: '',
       userDataSizeBinary: '',
     };
 
-    let userDataSize = 0;
-
+    // Calc dataTypeBinary
     switch (dataType) {
       case 'number':
         result.dataTypeBinary = '0001';
@@ -108,47 +123,31 @@ export default class MyQRCode {
         result.dataTypeBinary = '';
     }
 
-    if (typeof userData === 'string') userDataSize = userData.length;
-    else if (typeof userData === 'number') userDataSize = userData.toString().length;
-
-    // #1 - estimate version for correctionLevel + userDataSize
-    let { [correctionLevel]: estimatedVersion } = MyQRCodeUtils.getVersionForDataSize(userDataSize, correctionLevel);
-    if (typeof estimatedVersion === 'undefined') throw new Error('Something went wrong'); // remove 'undefined' datatype of version
-    if (estimatedVersion === -1) throw new Error('User data size too big');
-    // #2 - get serviceUserDataSize by estimated version and dataType
-    let serviceUserDataSize = MyQRCodeUtils.getServiceUserDataSize(estimatedVersion, dataType);
-    // #3 calc dataSize = userDataSize + serviceDataSize
-    let estimateDataSize = userDataSize + serviceUserDataSize + 4; // 4 for constant-sized of service data type
-    // #4 check if totalDataSize fits in chosen category
-
-    // #4.1 if fits then leave this version and return versionDataSize
-    // #4.2 else get next version and update versionDataSize
-    if (estimateDataSize <= MyQRCodeUtils.getNumberOfBits(correctionLevel, estimatedVersion)) {
-      result.userDataSizeBinary = MyUtils.convertIntToBinary(userDataSize);
-      result.userDataSizeBinary = MyUtils.fillBinaryString(result.userDataSizeBinary, serviceUserDataSize);
-    } else {
-      // increment version
-      estimatedVersion += 1;
-      // check if this version exists
-      if (MyQRCodeUtils.versionRange.max < estimatedVersion) throw new Error('QR Code version is out of range');
-      // update info about serviceUserDataSize
-      serviceUserDataSize = MyQRCodeUtils.getServiceUserDataSize(estimatedVersion, dataType);
-      estimateDataSize = userDataSize + serviceUserDataSize + 4;
-      // update result
-      result.userDataSizeBinary = MyUtils.convertIntToBinary(userDataSize);
-      result.userDataSizeBinary = MyUtils.fillBinaryString(result.userDataSizeBinary, serviceUserDataSize);
-    }
-
+    // Calc userDataSizeBinary:
+    // #1 get version for user + service data
+    const { [correctionLevel]: version } = MyQRCodeUtils.getVersionForDataSize(userBinaryDataSize, correctionLevel, dataType);
+    // #2 check if suitable version was found
+    if (typeof version === 'undefined' || version === -1) throw new Error('Suitable version not found');
+    // #3 calc binary length for service user data
+    const serviceUserDataSize = MyQRCodeUtils.getServiceUserDataSize(version!, dataType);
+    // #4 generate binary string for service user data size
+    result.userDataSizeBinary = MyUtils.convertIntToBinary(userDataSize);
+    result.userDataSizeBinary = MyUtils.fillBinaryString(result.userDataSizeBinary, serviceUserDataSize);
     return result;
   }
 
-  public static createInt(data: number): string | null {
+  public static createInt(data: number, options?: TQRCodeOptions): string | null {
     const intChunks = MyQRCode.codeNumber(data);
     return intChunks;
   }
 
-  public static createStr(data: string): string | null {
-    const strChunks = MyQRCode.codeString(data);
-    return strChunks;
+  public static createStr(data: string, options?: TQRCodeOptions): string | null {
+    const userDataBinary = this.codeString(data);
+    if (!userDataBinary) return 'Empty string does not supports yet';
+    const correctionLevel = options?.correctionLevel || 'M';
+    const userDataSize = MyQRCodeUtils.getUserDataSize('alphanum', data);
+
+    const serviceData = this.generateServiceFields('alphanum', userDataSize, userDataBinary.length, correctionLevel);
+    return `${serviceData.dataTypeBinary}${serviceData.userDataSizeBinary}${userDataBinary}`;
   }
 }
