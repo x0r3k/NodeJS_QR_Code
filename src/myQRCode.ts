@@ -1,8 +1,9 @@
 import MyQRCodeUtils from './myQRCodeUtils';
+import MyQRCodeConstants from './QRConstants';
 import MyUtils from './myUtils';
 
 import {
-  TDataTypeValues, TCorrectionLevel, TUserDataTypes, TQRCodeOptions,
+  TDataTypeValues, TCorrectionLevel, TQRCodeOptions,
 } from './interfaces/interfaces';
 
 export default class MyQRCode {
@@ -63,7 +64,9 @@ export default class MyQRCode {
    * @param data data in alphanum format
    * @returns If array of duplets is empty - return null. Else return data as binary string
    */
-  public static codeString(data: string): string | null {
+  public static codeAlphanum(data: string): string | null {
+    const { symbolCodeDictionary } = MyQRCodeConstants;
+
     if (typeof data !== 'string') throw new Error('Data should be string');
 
     if (!data.length) throw new Error('Data is empty'); // maybe it can be empty??
@@ -78,12 +81,12 @@ export default class MyQRCode {
         if (item.length === 2) {
           const totalBinaryLength = 11;
           const itemChars = item.split('');
-          processedItem = MyQRCodeUtils.symbolCodeDictionary[itemChars[0]] * 45 + MyQRCodeUtils.symbolCodeDictionary[itemChars[1]];
+          processedItem = symbolCodeDictionary[itemChars[0]] * 45 + symbolCodeDictionary[itemChars[1]];
           processedItem = MyUtils.convertIntToBinary(processedItem);
           processedItem = MyUtils.fillBinaryString(processedItem, totalBinaryLength);
         } else {
           const totalBinaryLength = 6;
-          processedItem = MyUtils.convertIntToBinary(MyQRCodeUtils.symbolCodeDictionary[item]);
+          processedItem = MyUtils.convertIntToBinary(symbolCodeDictionary[item]);
           processedItem = MyUtils.fillBinaryString(processedItem, totalBinaryLength);
         }
         return processedItem;
@@ -100,12 +103,13 @@ export default class MyQRCode {
    * for 'bytes' its number of bytes
    * @param userBinaryDataSize Size (length) of user data converted to binary string
    * @param correctionLevel Correction level. Values: ['L', 'M', 'Q', 'H'];
-   * @returns object with data type bits and user data size bits
+   * @returns object with data type bits, user data size bits and chosen QR Code version
    */
   public static generateServiceFields(dataType: TDataTypeValues, userDataSize: number, userBinaryDataSize: number, correctionLevel: TCorrectionLevel) {
     const result = {
       dataTypeBinary: '',
       userDataSizeBinary: '',
+      pickedVersion: 0,
     };
 
     // Calc dataTypeBinary
@@ -128,6 +132,7 @@ export default class MyQRCode {
     const { [correctionLevel]: version } = MyQRCodeUtils.getVersionForDataSize(userBinaryDataSize, correctionLevel, dataType);
     // #2 check if suitable version was found
     if (typeof version === 'undefined' || version === -1) throw new Error('Suitable version not found');
+    result.pickedVersion = version;
     // #3 calc binary length for service user data
     const serviceUserDataSize = MyQRCodeUtils.getServiceUserDataSize(version!, dataType);
     // #4 generate binary string for service user data size
@@ -136,18 +141,66 @@ export default class MyQRCode {
     return result;
   }
 
-  public static createInt(data: number, options?: TQRCodeOptions): string | null {
+  /**
+   * Fills last byte of binary data string with zeros if it needed
+   * (if last byte is not full, e.g 01011 -> 01011 000).
+   * After filling last byte, function fills binary data string with mock bytes until
+   * length of binary data string will be equal to chosen "Version-CorrectionLevel" max capacity
+   * @param binaryData All data (user + service) as binary string
+   * @param correctionLevel Correction level. Values: ['L', 'M', 'Q', 'H'];
+   * @param version Version of QR Code. Range 1-40
+   * @returns
+   */
+  public static fillBinaryData(binaryData: string, correctionLevel: TCorrectionLevel, version: number) {
+    const mockBytes = {
+      1: '11101100',
+      2: '00010001',
+    };
+    if (binaryData.length === 0) throw new Error('No binary data');
+    const byteRemainder = 8 - (binaryData.length % 8);
+    if (byteRemainder !== 0) binaryData += '0'.repeat(byteRemainder); // fill last byte with zeros
+    const qrCodeDataCapacity = MyQRCodeUtils.getNumberOfBits(correctionLevel, version);
+
+    let fillIndex = 0;
+    while (binaryData.length < qrCodeDataCapacity) {
+      if (fillIndex === 0) {
+        binaryData += mockBytes[1];
+        fillIndex = 1;
+      } else {
+        binaryData += mockBytes[2];
+        fillIndex = 0;
+      }
+    }
+    return binaryData;
+  }
+
+  public static createInt(data: number): string | null {
     const intChunks = MyQRCode.codeNumber(data);
     return intChunks;
   }
 
   public static createStr(data: string, options?: TQRCodeOptions): string | null {
-    const userDataBinary = this.codeString(data);
-    if (!userDataBinary) return 'Empty string does not supports yet';
-    const correctionLevel = options?.correctionLevel || 'M';
+    const { defaultCorrectionLevel } = MyQRCodeConstants;
+    const correctionLevel = options?.correctionLevel || defaultCorrectionLevel;
+
+    const userBinaryData = this.codeAlphanum(data);
+    if (!userBinaryData) return 'Empty string does not supports yet';
+
     const userDataSize = MyQRCodeUtils.getUserDataSize('alphanum', data);
 
-    const serviceData = this.generateServiceFields('alphanum', userDataSize, userDataBinary.length, correctionLevel);
-    return `${serviceData.dataTypeBinary}${serviceData.userDataSizeBinary}${userDataBinary}`;
+    const serviceData = this.generateServiceFields('alphanum', userDataSize, userBinaryData.length, correctionLevel);
+    const binaryData = `${serviceData.dataTypeBinary}${serviceData.userDataSizeBinary}${userBinaryData}`;
+    const filledBinaryData = this.fillBinaryData(binaryData, correctionLevel, serviceData.pickedVersion);
+    console.dir({
+      correctionLevel,
+      data,
+      userBinaryData,
+      userBDL: userBinaryData.length,
+      serviceData,
+      binaryData,
+      BDL: binaryData.length,
+      version: serviceData.pickedVersion,
+    });
+    return filledBinaryData;
   }
 }

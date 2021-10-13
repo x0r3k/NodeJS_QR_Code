@@ -18,7 +18,7 @@ export type TMaxDataValue = {[K in TCorrectionLevel]?: number};
 export type TRange = { max: number, min: number };
 
 export type TServiceUserDataSize = {
-  [K in (typeof MyQRCodeUtils.dataTypes)[number]]: {
+  [K in TDataTypeValues]: {
     [key in TVersionGroupIds]: number
   }
 }

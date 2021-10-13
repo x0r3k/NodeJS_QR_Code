@@ -1,9 +1,9 @@
-1. Move all static readonly field to Constants Class
-2. Set default correction level
++ 1. Move all static readonly field to Constants Class
++ 2. Set default correction level
 3. Check if empty data can be stored
 3.1 If empty data can be stored then add support of empty data param
 4. Add support of manual QR Code version definition
-5. Create wiki page (e.g README.md) and explain used definitions in project, describe main flow of project, etc
++- 5. Create wiki page (e.g README.md) and explain used definitions in project, describe main flow of project, etc
 ...
 30. Add support of binary data
 ...
