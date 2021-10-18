@@ -11,7 +11,7 @@ export type TDataTypeValues = 'number' | 'alphanum' | 'bytes';
 
 export type TVersionGroupIds = '1' | '2' | '3';
 
-export type TMaxDataMatrix = {[K in TCorrectionLevel]: Array<number>};
+export type TLevelVersionNumMatrix = {[K in TCorrectionLevel]: Array<number>};
 
 export type TMaxDataValue = {[K in TCorrectionLevel]?: number};
 

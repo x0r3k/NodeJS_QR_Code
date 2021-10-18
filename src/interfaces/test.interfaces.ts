@@ -1,5 +1,5 @@
 import {
-  IStringKeyObject, TCorrectionLevel, TMaxDataMatrix, TMaxDataValue, TRange, TDataTypeValues,
+  IStringKeyObject, TCorrectionLevel, TLevelVersionNumMatrix, TMaxDataValue, TRange, TDataTypeValues,
 } from './interfaces';
 
 export type TCanDataBeStoredTestData = Array<{

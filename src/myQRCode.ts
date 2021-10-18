@@ -174,6 +174,47 @@ export default class MyQRCode {
     return binaryData;
   }
 
+  /**
+   * Splits all prepared data (user + service) to data blocks.
+   *
+   * Amount of blocks calculates with correction level and version.
+   * All blocks contain equal amount of data bytes. If data cannot be divided equeally
+   * then some last blocks store extra byte of data.
+   * @param data Data as binary string
+   * @param correctionLevel Correction level. Values: ['L', 'M', 'Q', 'H'];
+   * @param version Version of QR Code. Range 1-40
+   * @returns Array with data blocks
+   */
+  public static divideDataToBlocks(data: string, correctionLevel: TCorrectionLevel, version: number) {
+    const { NumberOfBlocks } = MyQRCodeConstants;
+    // get number of bytes in data
+    const dataBytesNumber = data.length / 8;
+    // get number of blocks by which to divide the data
+    const blocksAmount = NumberOfBlocks[correctionLevel][version];
+    // calculate number of data blocks that will be overfilled
+    // (it means that dataBytes will not be divided equally among blocks)
+    const overfilledBlocksAmount = dataBytesNumber % blocksAmount;
+    // get minimal amount of data bytes in block
+    const bytesInBlock = Math.floor(dataBytesNumber / blocksAmount);
+    const result = [];
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < blocksAmount; i++) {
+      // check if block should get extra byte of data
+      const isOverfilledBlock = i + 1 + overfilledBlocksAmount > blocksAmount;
+      // calc index in data string to slice part of data for block
+      const endOfBlockData = isOverfilledBlock ? (bytesInBlock + 8) * 8 : bytesInBlock * 8;
+      const blockData = data.slice(0, endOfBlockData);
+      // update data by removing sliced data
+      data = data.slice(endOfBlockData);
+      result.push(blockData);
+    }
+    return result;
+  }
+
+  public static createCorrectionBytes(dataBlocks: Array<string>) {
+    return [];
+  }
+
   public static createInt(data: number): string | null {
     const intChunks = MyQRCode.codeNumber(data);
     return intChunks;
@@ -188,19 +229,19 @@ export default class MyQRCode {
 
     const userDataSize = MyQRCodeUtils.getUserDataSize('alphanum', data);
 
-    const serviceData = this.generateServiceFields('alphanum', userDataSize, userBinaryData.length, correctionLevel);
-    const binaryData = `${serviceData.dataTypeBinary}${serviceData.userDataSizeBinary}${userBinaryData}`;
-    const filledBinaryData = this.fillBinaryData(binaryData, correctionLevel, serviceData.pickedVersion);
-    console.dir({
-      correctionLevel,
-      data,
-      userBinaryData,
-      userBDL: userBinaryData.length,
-      serviceData,
-      binaryData,
-      BDL: binaryData.length,
-      version: serviceData.pickedVersion,
-    });
+    const { dataTypeBinary, userDataSizeBinary, pickedVersion } = this.generateServiceFields('alphanum', userDataSize, userBinaryData.length, correctionLevel);
+    const binaryData = `${dataTypeBinary}${userDataSizeBinary}${userBinaryData}`;
+    const filledBinaryData = this.fillBinaryData(binaryData, correctionLevel, pickedVersion);
+    // console.dir({
+    //   correctionLevel,
+    //   data,
+    //   userBinaryData,
+    //   userBDL: userBinaryData.length,
+    //   binaryData,
+    //   BDL: binaryData.length,
+    //   version: pickedVersion,
+    // });
+    const dataBlocks = this.divideDataToBlocks(filledBinaryData, correctionLevel, pickedVersion);
     return filledBinaryData;
   }
 }
