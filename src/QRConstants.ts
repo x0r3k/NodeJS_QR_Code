@@ -129,6 +129,11 @@ export default class MyQRCodeConstants {
     return MyQRCodeConstants._maxDataMatrix;
   }
 
+  /**
+   * Stores info about how many blocks data should be split into.
+   *
+   * Number of blocks depends on chosen "Correction level" (key of object) and QR Code Version# (index in array for each key value)
+   */
   private static readonly _NumberOfBlocks: TLevelVersionNumMatrix = {
     L: [1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8,
       8, 9, 9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25],
@@ -142,6 +147,46 @@ export default class MyQRCodeConstants {
 
   public static get NumberOfBlocks(): TLevelVersionNumMatrix {
     return MyQRCodeConstants._NumberOfBlocks;
+  }
+
+  /**
+   * Stores info about how many correction bytes for QR Code should be generated
+   *
+   * Number of blocks depends on chosen "Correction level" (key of object) and QR Code Version# (index in array for each key value)
+   */
+  private static readonly _NumberOfCorrectionBytes: TLevelVersionNumMatrix = {
+    L: [7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28,
+      28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+    M: [10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26,
+      26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28],
+    Q: [13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28, 26, 30,
+      28, 30, 30, 30, 30, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+    H: [17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28,
+      30, 24, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+  };
+
+  public static get NumberOfCorrectionBytes(): TLevelVersionNumMatrix {
+    return MyQRCodeConstants._NumberOfCorrectionBytes;
+  }
+
+  private static readonly _GeneratingPolynomialCoefs = {
+    7: [87, 229, 146, 149, 238, 102, 21],
+    10: [251, 67, 46, 61, 118, 70, 64, 94, 32, 45],
+    13: [74, 152, 176, 100, 86, 100, 106, 104, 130, 218, 206, 140, 78],
+    15: [8, 183, 61, 91, 202, 37, 51, 58, 58, 237, 140, 124, 5, 99, 105],
+    16: [120, 104, 107, 109, 102, 161, 76, 3, 91, 191, 147, 169, 182, 194, 225, 120],
+    17: [43, 139, 206, 78, 43, 239, 123, 206, 214, 147, 24, 99, 150, 39, 243, 163, 136],
+    18: [215, 234, 158, 94, 184, 97, 118, 170, 79, 187, 152, 148, 252, 179, 5, 98, 96, 153],
+    20: [17, 60, 79, 50, 61, 163, 26, 187, 202, 180, 221, 225, 83, 239, 156, 164, 212, 212, 188, 190],
+    22: [210, 171, 247, 242, 93, 230, 14, 109, 221, 53, 200, 74, 8, 172, 98, 80, 219, 134, 160, 105, 165, 231],
+    24: [229, 121, 135, 48, 211, 117, 251, 126, 159, 180, 169, 152, 192, 226, 228, 218, 111, 0, 117, 232, 87, 96, 227, 21],
+    26: [173, 125, 158, 2, 103, 182, 118, 17, 145, 201, 111, 28, 165, 53, 161, 21, 245, 142, 13, 102, 48, 227, 153, 145, 218, 70],
+    28: [168, 223, 200, 104, 224, 234, 108, 180, 110, 190, 195, 147, 205, 27, 232, 201, 21, 43, 245, 87, 42, 195, 212, 119, 242, 37, 9, 123],
+    30: [41, 173, 145, 152, 216, 31, 179, 182, 50, 48, 110, 86, 239, 96, 222, 125, 42, 173, 226, 193, 224, 130, 156, 37, 251, 216, 238, 40, 192, 180],
+  };
+
+  public static get GeneratingPolynomialCoefs() {
+    return MyQRCodeConstants._GeneratingPolynomialCoefs;
   }
 
   private static readonly _versionGroups: TVersionGroups = {

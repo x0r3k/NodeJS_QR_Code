@@ -120,22 +120,8 @@ describe('"MyQRCodeUtils" Class methods Test', () => {
 
   describe('ConvertVersion method Test', () => {
     it('Should convert format of version', () => {
-      expect(MyQRCodeUtils.convertVersion(10, 'i')).toBe(11);
-      expect(MyQRCodeUtils.convertVersion(10, 'v')).toBe(9);
-    });
-  });
-
-  describe('DivideDataToBlocks method Test', () => {
-    it('Should divide data to single block', () => {
-      expect(MyQRCodeUtils.divideDataToBlocks('0010000000101011000010110111100011001100000000001110110000010001'
-      + '1110110000010001111011000001000111101100000100011110110000010001', 'M', 1))
-        .toEqual(['00100000001010110000101101111000110011000000000011101100000100011110110000010001111011000001000111101100000100011110110000010001']);
-    });
-    it('Should divide data to four blocks', () => {
-      expect(MyQRCodeUtils.divideDataToBlocks('0010000000101011000010110111100011001100000000001110110000010001'
-      + '111011000001000111101100000100011110110000010001111011000001000111101100', 'M', 6))
-        .toEqual(['00100000001010110000101101111000', '11001100000000001110110000010001',
-          '11101100000100011110110000010001', '1110110000010001111011000001000111101100']);
+      expect(MyQRCodeUtils.convertVersion(10, 'v')).toBe(11);
+      expect(MyQRCodeUtils.convertVersion(10, 'i')).toBe(9);
     });
   });
 });

@@ -190,7 +190,7 @@ export default class MyQRCode {
     // get number of bytes in data
     const dataBytesNumber = data.length / 8;
     // get number of blocks by which to divide the data
-    const blocksAmount = NumberOfBlocks[correctionLevel][version];
+    const blocksAmount = NumberOfBlocks[correctionLevel][MyQRCodeUtils.convertVersion(version, 'i')];
     // calculate number of data blocks that will be overfilled
     // (it means that dataBytes will not be divided equally among blocks)
     const overfilledBlocksAmount = dataBytesNumber % blocksAmount;

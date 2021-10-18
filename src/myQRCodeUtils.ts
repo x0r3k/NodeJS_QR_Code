@@ -30,8 +30,8 @@ export default class MyQRCodeUtils {
   }
 
   /**
-   * Simple method to transform QR Code version from 'index' ('i') format
-   * to 'value' ('v') format and vice versa.
+   * Simple method to transform QR Code version in required format: 'index' ('i') format
+   * or 'value' ('v').
    *
    * Format param defines format of first parameter - version. If format === 'i'
    * then version passed as array index and will be transformed to QR Code version value.
@@ -44,9 +44,9 @@ export default class MyQRCodeUtils {
   public static convertVersion(version: number, format: string = 'i'): number {
     switch (format) {
       case 'i':
-        return version + 1;
-      case 'v':
         return version - 1;
+      case 'v':
+        return version + 1;
       default:
         return -1;
     }
@@ -84,13 +84,13 @@ export default class MyQRCodeUtils {
       // if datasize includes only user data then get service data size
       if (typeof dataType !== 'undefined') {
         // get service data for chosen version
-        const serviceData = this.getServiceUserDataSize(this.convertVersion(result[level]!, 'i'), dataType);
+        const serviceData = this.getServiceUserDataSize(this.convertVersion(result[level]!, 'v'), dataType);
         dataSize = dataSize + serviceData + 4; // recalc total datasize for storing
         // if version cannot store this size of data then increment version
-        if (!this.canDataBeStored(dataSize, level, this.convertVersion(result[level]!, 'i'))) result[level]! += 1;
+        if (!this.canDataBeStored(dataSize, level, this.convertVersion(result[level]!, 'v'))) result[level]! += 1;
       }
       // transform version array index to normal value of version
-      result[level] = this.convertVersion(result[level]!, 'i');
+      result[level] = this.convertVersion(result[level]!, 'v');
       // if result version is bigger than max version value - reset to -1
       if (result[level]! > versionRange.max) result[level] = -1;
     });
